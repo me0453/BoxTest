@@ -1,16 +1,29 @@
 package jp.co.mforce.box.example;
 
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.net.URL;
+import java.util.Properties;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import com.box.sdk.BoxAPIConnection;
+import com.box.sdk.BoxFile;
 import com.box.sdk.BoxFolder;
 import com.box.sdk.BoxItem;
+import com.box.sdk.BoxSearch;
+import com.box.sdk.BoxSearchParameters;
 import com.box.sdk.BoxUser;
+import com.box.sdk.PartialCollection;
 
-public class Main {
-	private static final String DEVELOPER_TOKEN = "";
+public final class Main {
+    private static final String DEVELOPER_TOKEN = "VVhabIPwmsvzqwhTxnMphcc9BEAkLKYl";
     private static final int MAX_DEPTH = 1;
+    private static final String ROOT_URL = "https://account.box.com/api/oauth2/authorize";
+    private static final String PROP_FILE_PATH = "test.properties";
+
 
     private Main() { }
 
@@ -18,13 +31,58 @@ public class Main {
         // Turn off logging to prevent polluting the output.
         Logger.getLogger("com.box.sdk").setLevel(Level.OFF);
 
+        //プロパティファイル読み込み
+        try{
+        	Properties prop = new Properties();
+        	InputStream inputStream = new FileInputStream(PROP_FILE_PATH);
+            prop.load(inputStream);
+            inputStream.close();
+
+            URL url = new URL(ROOT_URL + "?");
+
+
+
+       // BoxAPIRequest req = new BoxAPIRequest(URL url, String method);
+
+
         BoxAPIConnection api = new BoxAPIConnection(DEVELOPER_TOKEN);
 
         BoxUser.Info userInfo = BoxUser.getCurrentUser(api).getInfo();
-        System.out.format("Welcome, %s <%s>!\n\n", userInfo.getName(), userInfo.getLogin());
+        System.out.format("Welcome, %s !\n\n", userInfo.getName());
 
-        BoxFolder rootFolder = BoxFolder.getRootFolder(api);
-        listFolder(rootFolder, 0);
+        BoxSearch boxSearch = new BoxSearch(api);
+        BoxSearchParameters bsp_in = new BoxSearchParameters("dir1-1");
+        BoxSearchParameters bsp_out = new BoxSearchParameters("dir1-2");
+        bsp_in.setType("folder");
+        bsp_out.setType("folder");
+        PartialCollection<BoxItem.Info> searchResult1 = boxSearch.searchRange(0, 1, bsp_in);
+        PartialCollection<BoxItem.Info> searchResult2 = boxSearch.searchRange(0, 1, bsp_out);
+        BoxFolder inFolder = null;
+        BoxFolder outFolder = null;
+        for(BoxItem.Info itemInfo : searchResult1){
+        	inFolder = (BoxFolder) itemInfo.getResource();
+        }
+        for(BoxItem.Info itemInfo : searchResult2){
+        	outFolder = (BoxFolder) itemInfo.getResource();
+        }
+        if(inFolder != null || outFolder != null){
+        	for(BoxItem.Info item : inFolder.getChildren()){
+    			if(item instanceof BoxFile.Info){
+    				try {
+    					OutputStream out = new FileOutputStream(item.getName());
+    					BoxFile f = (BoxFile) item.getResource();
+    					f.download(out);
+    					f.move(outFolder);
+    					System.out.println("SUCCESS!!");
+    				} catch(Exception e) {
+    					e.printStackTrace();
+    				}
+    			}
+    		}
+        }
+        }catch (Exception e) {
+        	e.printStackTrace();
+        }
     }
 
     private static void listFolder(BoxFolder folder, int depth) {
@@ -43,5 +101,4 @@ public class Main {
             }
         }
     }
-
 }
