@@ -1,15 +1,20 @@
 package jp.co.mforce.box.example;
 
+import java.io.BufferedReader;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.net.URL;
+import java.nio.charset.Charset;
 import java.util.Properties;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import com.box.sdk.BoxAPIConnection;
+import com.box.sdk.BoxAPIRequest;
+import com.box.sdk.BoxAPIResponse;
 import com.box.sdk.BoxFile;
 import com.box.sdk.BoxFolder;
 import com.box.sdk.BoxItem;
@@ -38,12 +43,15 @@ public final class Main {
             prop.load(inputStream);
             inputStream.close();
 
-            URL url = new URL(ROOT_URL + "?");
-
-
-
-       // BoxAPIRequest req = new BoxAPIRequest(URL url, String method);
-
+            URL url = new URL(ROOT_URL + "?response_type=code&client_id=" + prop.getProperty("client_id") + "&state=XXX");
+            BoxAPIRequest req = new BoxAPIRequest(url, "GET");
+            BoxAPIResponse res = req.send();
+            BufferedReader reader = new BufferedReader(new InputStreamReader(res.getBody(),Charset.forName("UTF-8")));
+            System.out.println(reader);
+            String line = null;
+			while((line = reader.readLine()) != null){
+				System.out.println(line);
+			}
 
         BoxAPIConnection api = new BoxAPIConnection(DEVELOPER_TOKEN);
 
